@@ -1,25 +1,5 @@
 # BuildTracker
 
-**Université Chouaib Doukkali**  
-**École Nationale des Sciences Appliquées d'El Jadida**  
-**Département Télécommunications, Réseaux et Informatique**
-
----
-
-**Module :** Développement .NET et Multiplatforme  
-**Filière :** 2ITE - 2ème Année  
-**Année Universitaire :** 2024/2025
-
-**Réalisé par :**
-- AMERGA Younes
-- LAHLOU Asmae  
-- TAGHTI Zineb
-- EL ABIDI Aya
-
-**Encadré par :** Prof. A. Erraji
-
----
-
 ## 📋 Description du projet
 
 BuildTracker est une application mobile de gestion de projets de construction développée avec React Native. Elle permet aux professionnels du bâtiment de suivre leurs projets, gérer leurs équipes et coordonner les tâches depuis leur appareil mobile.
@@ -143,6 +123,11 @@ Mot de passe : zineb12
 - ✅ **Technologies** : Utilisation appropriée des outils modernes
 - ✅ **Documentation** : README complet et code documenté
 - ✅ **Innovation** : Fonctionnalités avancées (temps réel, cloud)
+## 👨‍💻 Contributeurs
+- AMERGA Younes
+- LAHLOU Asmae  
+- TAGHTI Zineb
+- EL ABIDI Aya
 
 ## 📄 Licence
 
