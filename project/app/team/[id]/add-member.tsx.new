@@ -1,0 +1,315 @@
+import { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, Image } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTeamContext } from '@/context/TeamContext';
+import { Header } from '@/components/ui/Header';
+import { useMembers } from '@/hooks/useMembers';
+import { Search, UserCheck, FilterX } from 'lucide-react-native';
+
+export default function AddMemberScreen() {
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
+  const { teams, addMember } = useTeamContext();
+  const { members, loading: membersLoading, error: membersError } = useMembers();
+  const [search, setSearch] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'member'>('member');
+  const [loading, setLoading] = useState(false);
+
+  const team = teams.find(t => t.id === id);
+
+  const filteredMembers = members?.filter(member => 
+    !team?.members?.some(m => m.userId === member.id) && (
+      member.name.toLowerCase().includes(search.toLowerCase()) ||
+      member.email.toLowerCase().includes(search.toLowerCase()) ||
+      member.role.toLowerCase().includes(search.toLowerCase())
+    )
+  ) || [];
+
+  if (!team) {
+    return (
+      <View style={styles.container}>
+        <Header title="Ajouter un membre" showBack />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Équipe non trouvée</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (membersLoading) {
+    return (
+      <View style={styles.container}>
+        <Header title="Ajouter un membre" showBack />
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Chargement des membres...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (membersError) {
+    return (
+      <View style={styles.container}>
+        <Header title="Ajouter un membre" showBack />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Erreur: {membersError}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const handleAddMember = async (member) => {
+    setLoading(true);
+    try {
+      await addMember(team.id, {
+        userId: member.id,
+        role: selectedRole,
+        name: member.name,
+        photoURL: member.avatar,
+      });
+      Alert.alert('Succès', 'Membre ajouté avec succès');
+      router.back();
+    } catch (error) {
+      console.error('Error adding member:', error);
+      Alert.alert('Erreur', 'Impossible d\'ajouter le membre');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderMemberItem = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.memberCard}
+      onPress={() => handleAddMember(item)}
+      disabled={loading}
+    >
+      <View style={styles.memberInfo}>
+        <Image 
+          source={{ 
+            uri: item.avatar || 'https://res.cloudinary.com/drbnnp7by/image/upload/v1/defaults/avatar-placeholder.jpg'
+          }}
+          style={styles.avatar}
+        />
+        <View style={styles.memberDetails}>
+          <Text style={styles.memberName}>{item.name}</Text>
+          <Text style={styles.memberRole}>{item.role}</Text>
+          {item.email && (
+            <Text style={styles.memberEmail}>{item.email}</Text>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={styles.container}>
+      <Header title="Ajouter un membre" showBack />
+      
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Search size={20} color="#90A4AE" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Rechercher un membre"
+            value={search}
+            onChangeText={setSearch}
+            placeholderTextColor="#90A4AE"
+          />
+          {search ? (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <FilterX size={20} color="#90A4AE" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.roleSelector}>
+        <Text style={styles.roleSelectorTitle}>Rôle dans l'équipe</Text>
+        <View style={styles.roleButtons}>
+          <TouchableOpacity
+            style={[
+              styles.roleButton,
+              selectedRole === 'member' && styles.roleButtonActive
+            ]}
+            onPress={() => setSelectedRole('member')}
+          >
+            <Text style={[
+              styles.roleButtonText,
+              selectedRole === 'member' && styles.roleButtonTextActive
+            ]}>Membre</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.roleButton,
+              selectedRole === 'admin' && styles.roleButtonActive
+            ]}
+            onPress={() => setSelectedRole('admin')}
+          >
+            <Text style={[
+              styles.roleButtonText,
+              selectedRole === 'admin' && styles.roleButtonTextActive
+            ]}>Admin</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      
+      <FlatList
+        data={filteredMembers}
+        renderItem={renderMemberItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              {search ? 'Aucun membre trouvé' : 'Aucun membre disponible'}
+            </Text>
+          </View>
+        }
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  searchContainer: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: 'Inter-Regular',
+    fontSize: 15,
+    color: '#263238',
+  },
+  roleSelector: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  roleSelectorTitle: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: '#607D8B',
+    marginBottom: 12,
+  },
+  roleButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  roleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+  },
+  roleButtonActive: {
+    backgroundColor: '#0B5394',
+    borderColor: '#0B5394',
+  },
+  roleButtonText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: '#607D8B',
+  },
+  roleButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  listContainer: {
+    padding: 16,
+  },
+  memberCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  memberInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+    backgroundColor: '#E1E9F2',
+  },
+  memberDetails: {
+    flex: 1,
+  },
+  memberName: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    color: '#263238',
+    marginBottom: 4,
+  },
+  memberRole: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#607D8B',
+    marginBottom: 2,
+  },
+  memberEmail: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#90A4AE',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 16,
+    color: '#607D8B',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 16,
+    color: '#FF3B30',
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 15,
+    color: '#607D8B',
+    textAlign: 'center',
+  },
+});
